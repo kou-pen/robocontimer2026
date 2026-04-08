@@ -1,0 +1,656 @@
+/* Reset & Global */
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+:root {
+    --bg-dark: #07090f;
+    --text-white: #f0f4f8;
+    --red-team: #e53935;
+    --red-team-glow: rgba(229, 57, 53, 0.6);
+    --blue-team: #1e88e5;
+    --blue-team-glow: rgba(30, 136, 229, 0.6);
+    --yellow-alert: #fdd835;
+    --yellow-glow: rgba(253, 216, 53, 0.6);
+    --panel-bg: rgba(20, 25, 40, 0.85);
+    --panel-border: rgba(255, 255, 255, 0.1);
+    
+    font-family: 'Teko', sans-serif;
+}
+
+body.capture-mode {
+    background-color: var(--bg-dark);
+    color: var(--text-white);
+    overflow: hidden; /* OBSスクリーン用にはみ出し禁止 */
+}
+
+body.control-mode {
+    background-color: var(--bg-dark);
+    color: var(--text-white);
+    overflow-x: hidden;
+    overflow-y: auto; /* フルスクリーンや狭い画面でもコントロール操作に支障が出ないようスクロールを許可 */
+}
+
+/* =========================================
+   キャプチャ画面 (OBS) スタイル
+   ========================================= */
+.capture-mode {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+    width: 100vw;
+}
+
+.screen-container {
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+    height: 100%;
+}
+
+.timer-section {
+    flex: 1; /* 上半分 50% */
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    background: radial-gradient(circle at center, #111520 0%, #040508 100%);
+    border-bottom: 4px solid var(--panel-border);
+    transition: background-color 0.5s ease;
+}
+
+/* 背景は変更せず元のグラデーションを維持するため削除（必要に応じて微量の赤みなどを出しても良し） */
+
+.timer-section.timeup .time-display {
+    color: var(--yellow-alert);
+    text-shadow: 0 0 20px var(--yellow-glow), 0 0 40px var(--yellow-alert);
+    animation: flash 0.5s infinite alternate; /* 点滅を少し早くして焦燥感を演出 */
+}
+
+@keyframes flash {
+    0% { opacity: 1; }
+    100% { opacity: 0.7; }
+}
+
+.phase-label {
+    font-size: min(4vw, 6vh);
+    font-weight: 600;
+    letter-spacing: 0.2em;
+    color: rgba(255,255,255,0.7);
+    margin-bottom: -1vh;
+}
+
+.time-display {
+    font-family: 'Orbitron', sans-serif;
+    font-size: min(24vw, 35vh);
+    font-weight: 800;
+    line-height: 1;
+    text-shadow: 0 0 20px rgba(255,255,255,0.4);
+    letter-spacing: 0.05em;
+    transition: color 0.3s;
+    font-variant-numeric: tabular-nums;
+}
+
+.score-section {
+    flex: 1; /* 下半分 50% */
+    display: flex;
+    flex-direction: row;
+    width: 100%;
+}
+
+.team-panel {
+    flex: 1; /* 左右それぞれ 50% */
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    position: relative;
+    overflow: hidden;
+    transition: background-color 0.5s, box-shadow 0.5s;
+}
+
+.team-red {
+    background: linear-gradient(135deg, rgba(229, 57, 53, 0.15) 0%, rgba(0,0,0,0) 100%);
+    border-right: 2px solid var(--panel-border);
+}
+.team-blue {
+    background: linear-gradient(225deg, rgba(30, 136, 229, 0.15) 0%, rgba(0,0,0,0) 100%);
+    border-left: 2px solid var(--panel-border);
+}
+
+.team-name {
+    font-size: min(4vw, 6vh);
+    font-weight: 600;
+    letter-spacing: 0.15em;
+    color: rgba(255,255,255,0.8);
+    margin-bottom: 2vh;
+}
+
+.team-score {
+    font-family: 'Orbitron', sans-serif;
+    font-size: min(15vw, 30vh);
+    font-weight: 800;
+    line-height: 1;
+    z-index: 2;
+    font-variant-numeric: tabular-nums;
+}
+
+.team-red .team-score {
+    color: var(--red-team);
+    text-shadow: 0 0 30px var(--red-team-glow);
+}
+.team-blue .team-score {
+    color: var(--blue-team);
+    text-shadow: 0 0 30px var(--blue-team-glow);
+}
+
+/* V-GOAL Styles */
+.vgoal-label {
+    position: absolute;
+    font-family: 'Orbitron', sans-serif;
+    font-size: min(8vw, 15vh);
+    font-weight: 800;
+    color: var(--bg-dark);
+    background: var(--yellow-alert);
+    padding: 10px 40px;
+    transform: rotate(-15deg) scale(0);
+    opacity: 0;
+    transition: all 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    z-index: 10;
+    box-shadow: 0 0 50px var(--yellow-glow);
+}
+
+.is-vgoal {
+    background-color: var(--yellow-alert) !important;
+}
+
+.team-panel.is-vgoal::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: repeating-linear-gradient(
+        45deg,
+        rgba(0,0,0,0.1),
+        rgba(0,0,0,0.1) 20px,
+        rgba(0,0,0,0) 20px,
+        rgba(0,0,0,0) 40px
+    );
+}
+
+.team-panel.is-vgoal .team-score,
+.team-panel.is-vgoal .team-name {
+    color: var(--bg-dark);
+    text-shadow: none;
+}
+
+.team-panel.is-vgoal .vgoal-label {
+    transform: rotate(-5deg) scale(1.2);
+    opacity: 1;
+}
+
+/* =========================================
+   コントロール画面 スタイル
+   ========================================= */
+.control-mode {
+    padding: 2vw; /* 余白もレスポンシブに */
+    font-family: 'Helvetica Neue', Arial, sans-serif; 
+    /* コントロール画面は汎用フォントも混ぜて見やすく */
+}
+
+.control-container {
+    max-width: 1200px;
+    margin: 0 auto;
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+.control-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: var(--panel-bg);
+    padding: 15px 30px;
+    border-radius: 12px;
+    border: 1px solid var(--panel-border);
+}
+
+.control-header h1 {
+    font-family: 'Teko', sans-serif;
+    font-size: 2.5rem;
+    letter-spacing: 0.1em;
+}
+
+.panel {
+    background: var(--panel-bg);
+    border: 1px solid var(--panel-border);
+    border-radius: 12px;
+    padding: 20px;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+}
+
+/* タイマーパネル */
+.timer-controls {
+    display: flex;
+    flex-direction: column; /* 縦積みに戻してボタンが横移動するのを防ぐ */
+    align-items: center;
+    gap: 15px;
+}
+
+.settings {
+    display: flex;
+    gap: 40px;
+    font-size: 1.1rem;
+}
+
+.input-time {
+    width: 60px;
+    background: #111;
+    border: 1px solid #444;
+    color: white;
+    font-size: 1.2rem;
+    padding: 5px;
+    text-align: center;
+    border-radius: 4px;
+}
+
+.main-display {
+    text-align: center;
+    background: #000;
+    padding: 20px 40px;
+    border-radius: 8px;
+    border: 2px solid #333;
+    min-width: 300px; /* カウントダウン一文字の時でも箱が潰れないようにする */
+}
+
+.main-display .phase-display {
+    font-family: 'Teko', sans-serif;
+    font-size: 2rem;
+    color: #888;
+}
+
+.main-display .time-display {
+    font-family: 'Orbitron', sans-serif;
+    font-size: 6rem;
+    line-height: 1;
+    font-variant-numeric: tabular-nums;
+}
+
+.action-buttons {
+    display: flex;
+    gap: 15px;
+}
+
+.btn {
+    padding: 10px 20px;
+    font-size: 1.2rem;
+    font-weight: bold;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.2s;
+    background: #333;
+    color: white;
+}
+.btn:hover { background: #444; }
+.btn:active { transform: scale(0.95); }
+
+.btn.primary { background: #2e7d32; }
+.btn.primary:hover { background: #388e3c; }
+.btn.danger { background: #c62828; }
+.btn.danger:hover { background: #d32f2f; }
+.btn.warning { background: #f57f17; color: black; }
+.btn.warning:hover { background: #fbc02d; }
+.btn.small { padding: 5px 10px; font-size: 0.9rem; }
+
+/* スコアパネル */
+.team-select {
+    background: #111;
+    color: white;
+    border: 1px solid #444;
+    padding: 10px;
+    font-size: 2rem;
+    font-family: 'Teko', sans-serif;
+    margin-bottom: 5px;
+    border-radius: 6px;
+    width: 80%;
+    text-align: center;
+    cursor: pointer;
+}
+.team-select:focus {
+    outline: none;
+    border-color: #888;
+}
+
+.score-controls {
+    display: flex;
+    flex-wrap: wrap; /* 全画面化・画面縮小時に左右パネルが潰れず上下に折り返すよう保護 */
+    gap: 20px;
+}
+
+.team-control-panel {
+    flex: 1 1 350px; /* パネルが350pxより狭くならないよう確保 */
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+.red-panel { border-top: 5px solid var(--red-team); }
+.blue-panel { border-top: 5px solid var(--blue-team); }
+
+.team-control-panel h2 {
+    font-family: 'Teko', sans-serif;
+    font-size: 3rem;
+    letter-spacing: 0.1em;
+}
+
+.red-panel h2 { color: var(--red-team); }
+.blue-panel h2 { color: var(--blue-team); }
+
+.total-score {
+    font-family: 'Orbitron', sans-serif;
+    font-size: 5rem;
+    margin: 10px 0;
+    font-variant-numeric: tabular-nums;
+}
+
+.score-breakdown {
+    width: 100%;
+    margin-top: 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+}
+
+.item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: rgba(0,0,0,0.5);
+    padding: 10px 20px;
+    border-radius: 8px;
+    font-size: 1.2rem;
+}
+
+.btn-group {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+}
+
+.op-btn {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    font-size: 1.5rem;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+.count {
+    font-family: 'Orbitron', sans-serif;
+    font-size: 1.5rem;
+    min-width: 40px;
+    text-align: center;
+}
+
+.vgoal-btn {
+    width: auto;
+    border-radius: 6px;
+    background: var(--yellow-alert);
+    color: black;
+}
+.vgoal-btn.active {
+    background: #000;
+    color: var(--yellow-alert);
+    border: 2px solid var(--yellow-alert);
+}
+
+.key-hints {
+    margin-top: 15px;
+    font-size: 0.95rem;
+    color: #aaa;
+    text-align: center;
+}
+
+.key-badge {
+    display: inline-block;
+    background: #333;
+    border: 1px solid #777;
+    border-radius: 4px;
+    border-bottom-width: 2px;
+    padding: 1px 6px;
+    font-size: 0.85rem;
+    font-family: monospace;
+    font-weight: bold;
+    margin-left: 8px;
+    color: #ffd54f;
+    vertical-align: middle;
+}
+
+/* =========================================
+   オーバーレイ画面 (クロマキー透過対応)
+   ========================================= */
+body.overlay-mode {
+    background-color: #00ff00; /* Vゴールと同じく黄色の不透明化で解決したため、標準の純緑に復元 */
+    color: var(--text-white);
+    overflow: hidden;
+}
+
+.overlay-container {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    padding: 3vh 3vw;
+    width: 100vw;
+    height: 100vh;
+    box-sizing: border-box;
+}
+
+.overlay-team {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    background: #0a0f19; /* 映像が透けないよう完全な不透明(ベタ塗り)に変更 */
+    border-radius: 12px;
+    padding: 10px 30px;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    position: relative;
+    box-shadow: 0 10px 25px rgba(0,0,0,0.8);
+    min-width: 15vw;
+    transition: all 0.3s;
+}
+
+.overlay-team.team-red {
+    border-top: 6px solid var(--red-team);
+}
+.overlay-team.team-blue {
+    border-top: 6px solid var(--blue-team);
+}
+
+.overlay-mode .team-name {
+    font-size: min(2vw, 3vh);
+    margin-bottom: 0;
+    color: rgba(255,255,255,0.9);
+}
+
+.overlay-mode .team-score {
+    font-size: min(6vw, 10vh);
+    line-height: 1;
+    font-family: 'Orbitron', sans-serif;
+    font-weight: 800;
+    font-variant-numeric: tabular-nums;
+    text-shadow: 0 0 15px rgba(0,0,0,1); /* カメラ映像用に強いシャドウ */
+}
+
+.overlay-mode .team-red .team-score { color: var(--red-team); text-shadow: 0 0 20px var(--red-team-glow); }
+.overlay-mode .team-blue .team-score { color: var(--blue-team); text-shadow: 0 0 20px var(--blue-team-glow); }
+
+.overlay-timer {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    background: #0a0f19; /* こちらも不透明に変更 */
+    padding: 10px 40px;
+    border-radius: 12px;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-top: 6px solid #888;
+    box-shadow: 0 10px 25px rgba(0,0,0,0.8);
+    transition: background-color 0.5s ease;
+}
+
+.overlay-mode .phase-label {
+    font-size: min(1.5vw, 2.5vh);
+    margin-bottom: -0.5vh;
+}
+
+.overlay-mode .time-display {
+    font-size: min(8vw, 12vh);
+    line-height: 1;
+    font-family: 'Orbitron', sans-serif;
+    font-weight: 800;
+    font-variant-numeric: tabular-nums;
+    text-shadow: 0 0 10px rgba(0,0,0,0.5);
+}
+
+/* オーバーレイ独自のエフェクト（背景は変えず、文字だけを黄色にする） */
+.overlay-timer.timeup {
+    /* 背景色の上書きを削除し、元の #0a0f19 を維持 */
+}
+.overlay-timer.timeup .time-display {
+    color: var(--yellow-alert); /* 文字を黄色に */
+    text-shadow: 0 0 15px rgba(253, 216, 53, 0.8);
+    animation: flash 0.5s infinite alternate;
+}
+
+.overlay-team.is-vgoal {
+    background-color: var(--yellow-alert) !important;
+    border-top-color: var(--bg-dark);
+}
+.overlay-team.is-vgoal .team-score,
+.overlay-team.is-vgoal .team-name {
+    color: var(--bg-dark);
+    text-shadow: none;
+}
+.overlay-mode .vgoal-label {
+    font-size: min(2vw, 4vh);
+    padding: 5px 20px;
+    opacity: 0; 
+}
+.overlay-team.is-vgoal .vgoal-label {
+    opacity: 1;
+    transform: rotate(-5deg) scale(1.1);
+}
+
+/* =========================================
+   レスポンシブ対応 (スマートフォン・モバイル向け)
+   ========================================= */
+@media (max-width: 768px) {
+    /* 全体と余白のコンパクト化 */
+    .control-mode {
+        padding: 10px;
+    }
+    .panel {
+        padding: 15px 10px;
+    }
+
+    /* タイトルとヘッダー */
+    .control-header {
+        flex-direction: column;
+        gap: 15px;
+        text-align: center;
+        padding: 15px;
+    }
+    .control-header h1 {
+        font-size: 1.8rem;
+    }
+
+    /* タイマー設定パネル (時間を縦に並べる) */
+    .settings {
+        flex-direction: column;
+        gap: 15px;
+        width: 100%;
+    }
+    .settings > div {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        background: rgba(0,0,0,0.3);
+        padding: 10px;
+        border-radius: 8px;
+    }
+
+    /* タイマー数字 (はみ出さないように縮小) */
+    .main-display {
+        min-width: unset;
+        width: 100%;
+        padding: 15px 10px;
+    }
+    .main-display .time-display {
+        font-size: 4rem; /* 6remから縮小 */
+    }
+    .main-display .phase-display {
+        font-size: 1.5rem;
+    }
+
+    /* アクションボタン (縦に並べて押し間違いを防ぐ) */
+    .action-buttons {
+        flex-direction: column;
+        width: 100%;
+    }
+    .action-buttons .btn {
+        width: 100%;
+        padding: 15px;
+        font-size: 1.3rem;
+    }
+
+    /* チームスコアパネル (左右から上下へ幅を占有させる) */
+    .team-control-panel {
+        flex: 1 1 100%;
+    }
+    .team-select {
+        width: 100%;
+        font-size: 1.6rem;
+    }
+    .team-control-panel h2 {
+        font-size: 2.2rem;
+    }
+    .total-score {
+        font-size: 4rem;
+    }
+
+    /* 得点の入力ボタン群 (タッチミスを防ぐためのサイズ確保) */
+    .item {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 10px;
+        padding: 15px;
+    }
+    .item > div:first-child {
+        text-align: center;
+        margin-bottom: 5px;
+    }
+    .btn-group {
+        justify-content: space-between;
+        background: rgba(255,255,255,0.05);
+        padding: 10px;
+        border-radius: 8px;
+    }
+    .op-btn {
+        width: 50px;
+        height: 50px;
+        font-size: 1.8rem;
+    }
+    .count {
+        font-size: 2rem;
+        min-width: 50px;
+    }
+    .vgoal-btn {
+        width: 100%;
+        padding: 15px;
+        font-size: 1.2rem;
+    }
+}

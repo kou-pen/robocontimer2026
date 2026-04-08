@@ -1,0 +1,297 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>Camera Streamer</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    background: #0f0f0f;
+    color: #fff;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    min-height: 100dvh;
+    padding: 16px;
+    gap: 14px;
+  }
+  h1 { font-size: 18px; font-weight: 600; letter-spacing: 0.03em; color: #e0e0e0; }
+
+  #preview {
+    width: 100%;
+    max-width: 360px;
+    aspect-ratio: 9/16;
+    object-fit: cover;
+    border-radius: 12px;
+    background: #1a1a1a;
+    border: 2px solid #2a2a2a;
+    transform: scaleX(-1); /* インカメラはミラー反転を戻す */
+  }
+
+  #controls { display: flex; gap: 10px; width: 100%; max-width: 360px; }
+
+  button {
+    flex: 1;
+    padding: 14px 0;
+    border: none;
+    border-radius: 10px;
+    font-size: 15px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: opacity 0.15s, transform 0.1s;
+  }
+  button:active { transform: scale(0.97); }
+  button:disabled { opacity: 0.35; cursor: not-allowed; }
+
+  #btn-start  { background: #22c55e; color: #fff; }
+  #btn-stop   { background: #ef4444; color: #fff; }
+  #btn-flip   { background: #3b82f6; color: #fff; flex: 0 0 50px; font-size: 20px; }
+
+  #stats {
+    width: 100%; max-width: 360px;
+    background: #1a1a1a;
+    border-radius: 10px;
+    padding: 12px 14px;
+    font-size: 13px;
+    color: #aaa;
+    line-height: 1.8;
+  }
+  .stat-row { display: flex; justify-content: space-between; }
+  .stat-val  { color: #fff; font-weight: 600; }
+  .dot { display:inline-block; width:8px; height:8px; border-radius:50%; margin-right:6px; }
+  .dot.green  { background:#22c55e; }
+  .dot.red    { background:#ef4444; }
+  .dot.yellow { background:#eab308; }
+
+  #log {
+    width: 100%; max-width: 360px;
+    background: #111;
+    border-radius: 8px;
+    padding: 10px 12px;
+    font-size: 11px;
+    color: #666;
+    max-height: 80px;
+    overflow-y: auto;
+    font-family: monospace;
+  }
+</style>
+</head>
+<body>
+<h1>📷 Camera Streamer</h1>
+
+<video id="preview" autoplay playsinline muted></video>
+
+<div id="controls">
+  <button id="btn-start">▶ Start</button>
+  <button id="btn-stop" disabled>■ Stop</button>
+  <button id="btn-flip" title="カメラ切替">🔄</button>
+</div>
+
+<div id="stats">
+  <div class="stat-row">
+    <span>状態</span>
+    <span class="stat-val"><span class="dot red" id="status-dot"></span><span id="status-text">未接続</span></span>
+  </div>
+  <div class="stat-row">
+    <span>解像度</span><span class="stat-val" id="stat-res">—</span>
+  </div>
+  <div class="stat-row">
+    <span>送信FPS</span><span class="stat-val" id="stat-fps">—</span>
+  </div>
+  <div class="stat-row">
+    <span>送信サイズ</span><span class="stat-val" id="stat-size">—</span>
+  </div>
+</div>
+
+<div id="log">ログ</div>
+
+<!-- canvas は非表示で JPEG 変換にだけ使う -->
+<canvas id="canvas" style="display:none"></canvas>
+
+<script>
+const video   = document.getElementById('preview');
+const canvas  = document.getElementById('canvas');
+const ctx     = canvas.getContext('2d');
+const logEl   = document.getElementById('log');
+
+const btnStart = document.getElementById('btn-start');
+const btnStop  = document.getElementById('btn-stop');
+const btnFlip  = document.getElementById('btn-flip');
+
+const statusDot  = document.getElementById('status-dot');
+const statusText = document.getElementById('status-text');
+const statRes    = document.getElementById('stat-res');
+const statFps    = document.getElementById('stat-fps');
+const statSize   = document.getElementById('stat-size');
+
+let ws = null;
+let stream = null;
+let streaming = false;
+let facingMode = 'environment';  // 背面カメラ
+let frameCount = 0, bytesSent = 0;
+let lastFpsTime = performance.now();
+
+// ── ログ出力 ──────────────────────────────────────────────────────
+function log(msg) {
+  const d = new Date().toTimeString().slice(0,8);
+  logEl.textContent = `[${d}] ${msg}\n` + logEl.textContent;
+}
+
+// ── 状態表示 ─────────────────────────────────────────────────────
+function setStatus(text, color) {
+  statusText.textContent = text;
+  statusDot.className = `dot ${color}`;
+}
+
+// ── カメラ取得 ────────────────────────────────────────────────────
+async function getCamera() {
+  if (stream) stream.getTracks().forEach(t => t.stop());
+  try {
+    stream = await navigator.mediaDevices.getUserMedia({
+      video: {
+        facingMode,
+        width:     { ideal: 1280 },
+        height:    { ideal: 720 },
+        frameRate: { ideal: 30, max: 60 },
+      },
+      audio: false
+    });
+    video.srcObject = stream;
+
+    const track    = stream.getVideoTracks()[0];
+    const settings = track.getSettings();
+    log(`Camera: ${settings.width}x${settings.height} @ ${settings.frameRate}fps`);
+    return true;
+  } catch (e) {
+    log(`Camera error: ${e.message}`);
+    return false;
+  }
+}
+
+// ── WebSocket 接続 ────────────────────────────────────────────────
+function connectWS() {
+  const host = location.hostname;
+  const port = location.port || 8443;
+  const url  = `wss://${host}:${port}/ws`;
+  ws = new WebSocket(url);
+  ws.binaryType = 'arraybuffer';
+
+  ws.onopen = () => {
+    setStatus('接続中', 'green');
+    log(`WS connected: ${url}`);
+    startSending();
+  };
+  ws.onclose = () => {
+    setStatus('切断', 'red');
+    log('WS disconnected');
+    streaming = false;
+  };
+  ws.onerror = e => {
+    log(`WS error: ${e.message || 'unknown'}`);
+  };
+}
+
+// ── フレーム送信ループ ────────────────────────────────────────────
+// canvas.toBlob で JPEG 化 → WebSocket で送信
+// toBlob のコールバック内で次フレームをリクエストすることで
+// ネットワーク速度に自動追従（詰まったら自然にスローダウン）
+function startSending() {
+  streaming = true;
+
+  function sendFrame() {
+    if (!streaming || !ws || ws.readyState !== WebSocket.OPEN) return;
+
+    const vw = video.videoWidth;
+    const vh = video.videoHeight;
+    if (!vw || !vh) { requestAnimationFrame(sendFrame); return; }
+
+    // 縦向きにリサイズ（720×1280 相当）
+    // 送信側でリサイズすることで帯域を節約
+    let dw, dh;
+    if (vw < vh) {            // 既に portrait
+      dw = Math.min(vw, 720);
+      dh = Math.round(vh * dw / vw);
+    } else {                  // landscape → 回転して portrait に
+      dh = Math.min(vw, 720);  // 元の横幅が縦になる
+      dw = Math.round(vh * dh / vw);
+    }
+    canvas.width  = dw;
+    canvas.height = dh;
+
+    if (vw > vh) {
+      // 90度回転して描画
+      ctx.save();
+      ctx.translate(dw, 0);
+      ctx.rotate(Math.PI / 2);
+      ctx.drawImage(video, 0, 0, dh, dw);   // 注意: drawImage の w/h は回転前
+      ctx.restore();
+    } else {
+      ctx.drawImage(video, 0, 0, dw, dh);
+    }
+
+    statRes.textContent = `${dw}×${dh}`;
+
+    canvas.toBlob(blob => {
+      if (!blob) { requestAnimationFrame(sendFrame); return; }
+
+      // キューが詰まっていれば送信スキップ（遅延防止）
+      if (ws.bufferedAmount > 256 * 1024) {
+        log(`WS buffer ${(ws.bufferedAmount/1024).toFixed(0)}kB - skip frame`);
+        requestAnimationFrame(sendFrame);
+        return;
+      }
+
+      ws.send(blob);
+      bytesSent += blob.size;
+      frameCount++;
+
+      // FPS 計算 (1秒ごと)
+      const now = performance.now();
+      const elapsed = (now - lastFpsTime) / 1000;
+      if (elapsed >= 1) {
+        statFps.textContent  = `${(frameCount / elapsed).toFixed(1)} fps`;
+        statSize.textContent = `${(bytesSent / elapsed / 1024).toFixed(0)} KB/s`;
+        frameCount = bytesSent = 0;
+        lastFpsTime = now;
+      }
+
+      requestAnimationFrame(sendFrame);
+    }, 'image/jpeg', 0.82);
+  }
+
+  requestAnimationFrame(sendFrame);
+}
+
+// ── ボタン ────────────────────────────────────────────────────────
+btnStart.addEventListener('click', async () => {
+  btnStart.disabled = true;
+  setStatus('カメラ起動中...', 'yellow');
+  const ok = await getCamera();
+  if (!ok) { btnStart.disabled = false; setStatus('エラー', 'red'); return; }
+  setStatus('WS接続中...', 'yellow');
+  connectWS();
+  btnStop.disabled = false;
+});
+
+btnStop.addEventListener('click', () => {
+  streaming = false;
+  if (ws) { ws.close(); ws = null; }
+  if (stream) { stream.getTracks().forEach(t => t.stop()); stream = null; }
+  video.srcObject = null;
+  btnStart.disabled = false;
+  btnStop.disabled  = true;
+  setStatus('停止', 'red');
+  log('Stopped');
+});
+
+btnFlip.addEventListener('click', async () => {
+  facingMode = (facingMode === 'environment') ? 'user' : 'environment';
+  video.style.transform = facingMode === 'user' ? 'scaleX(1)' : 'scaleX(-1)';
+  await getCamera();
+  log(`Camera flipped: ${facingMode}`);
+});
+</script>
+</body>
+</html>

@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>OBS オーバーレイ画面 | ロボコン用タイマー</title>
+    <link rel="stylesheet" href="css/style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Teko:wght@400;600&family=Orbitron:wght@600;800&display=swap" rel="stylesheet">
+</head>
+<body class="overlay-mode">
+    <div class="overlay-container">
+        <!-- 左上: 赤チーム -->
+        <div class="overlay-team team-red" id="bg-red">
+            <div class="team-name" id="name-red">RED TEAM</div>
+            <div class="team-score" id="score-red">0</div>
+            <div class="vgoal-label" id="vgoal-red">V-GOAL!</div>
+        </div>
+
+        <!-- 上部中央: タイマー -->
+        <div class="overlay-timer" id="timer-bg">
+            <div class="phase-label" id="phase-label">SETTING TIME</div>
+            <div class="time-display" id="time-display">0:00</div>
+        </div>
+        
+        <!-- 右上: 青チーム -->
+        <div class="overlay-team team-blue" id="bg-blue">
+            <div class="team-name" id="name-blue">BLUE TEAM</div>
+            <div class="team-score" id="score-blue">0</div>
+            <div class="vgoal-label" id="vgoal-blue">V-GOAL!</div>
+        </div>
+    </div>
+    
+    <!-- 既存のscreen.jsをそのまま流用し、100%同一の表示・同期ロジックを利用する -->
+    <script src="js/screen.js"></script>
+</body>
+</html>

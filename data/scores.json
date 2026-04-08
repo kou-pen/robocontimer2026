@@ -1,0 +1,79 @@
+[
+    {
+        "id": "entrr",
+        "label": "侵入",
+        "points": {
+            "manual": 10,
+            "auto": 20
+        },
+        "type": "number",
+        "keyRed": "a",
+        "keyBlue": "l"
+    },
+    {
+        "id": "ring",
+        "label": "リング",
+        "points": {
+            "manual": 2,
+            "auto": 4
+        },
+        "type": "number",
+        "keyRed": "q",
+        "keyBlue": "u"
+    },
+    {
+        "id": "yagura",
+        "label": "やぐら",
+        "points": {
+            "manual": 25,
+            "auto": 50
+        },
+        "type": "number",
+        "keyRed": "w",
+        "keyBlue": "i"
+    },
+    {
+        "id": "ring_in_yagura",
+        "label": "リングが櫓にある",
+        "points": {
+            "manual": 10,
+            "auto": 20
+        },
+        "type": "number",
+        "keyRed": "s",
+        "keyBlue": "o"
+    },
+    {
+        "id": "zintori",
+        "label": "陣取り",
+        "points": {
+            "manual": 30,
+            "auto": 30
+        },
+        "type": "number",
+        "keyRed": "d",
+        "keyBlue": "p"
+    },
+    {
+        "id": "oute",
+        "label": "王手",
+        "points": {
+            "manual": 50,
+            "auto": 100
+        },
+        "type": "number",
+        "keyRed": "f",
+        "keyBlue": "@"
+    },
+    {
+        "id": "vgoal",
+        "label": "Vゴール",
+        "points": {
+            "manual": 0,
+            "auto": 0
+        },
+        "type": "toggle",
+        "keyRed": "e",
+        "keyBlue": "o"
+    }
+]

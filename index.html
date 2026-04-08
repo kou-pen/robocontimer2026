@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>コントロールメイン | ロボコン用タイマー</title>
+    <link rel="stylesheet" href="css/style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Teko:wght@400;600&family=Orbitron:wght@600;800&display=swap" rel="stylesheet">
+</head>
+<body class="control-mode">
+    <div class="control-container">
+        <header class="control-header">
+            <h1>ROBOCON TIMER - CONTROL PANEL</h1>
+            <div class="audio-loader">
+                <button id="test-audio" class="btn small">TEST BEEP (音出し確認)</button>
+            </div>
+        </header>
+
+        <section class="timer-controls panel">
+            <h2>タイマー設定 & 操作</h2>
+            <div class="settings">
+                <div>
+                    <label>セッティングタイム</label>
+                    <input type="number" id="setting-min" value="1" min="0" max="99" class="input-time"> 分
+                    <input type="number" id="setting-sec" value="0" min="0" max="59" class="input-time"> 秒
+                </div>
+                <div>
+                    <label>試 合 時 間</label>
+                    <input type="number" id="match-min" value="3" min="0" max="99" class="input-time"> 分
+                    <input type="number" id="match-sec" value="0" min="0" max="59" class="input-time"> 秒
+                </div>
+            </div>
+            <div class="main-display">
+                <div class="phase-display" id="ctrl-phase">SETTINGTIME</div>
+                <div class="time-display" id="ctrl-time">01:00</div>
+            </div>
+            <div class="action-buttons">
+                <button id="btn-start" class="btn primary">START COUNTDOWN</button>
+                <button id="btn-pause" class="btn">PAUSE</button>
+                <button id="btn-reset" class="btn danger">RESET</button>
+                <button id="btn-switch-match" class="btn warning">MATCHへ切替</button>
+            </div>
+        </section>
+
+        <section class="score-controls">
+            <!-- 赤チーム操作 -->
+            <div class="team-control-panel red-panel panel">
+                <select id="team-red-select" class="team-select"></select>
+                
+                <div class="team-mode-toggle" style="margin-top: 10px; background: rgba(0,0,0,0.3); padding: 8px 15px; border-radius: 6px;">
+                    <label style="font-size: 1.2rem; cursor: pointer; display: flex; align-items: center;">
+                        <input type="checkbox" id="chk-red-auto" style="transform: scale(1.5); margin-right: 12px; cursor: pointer;">
+                        ✅ 自動機モードで加算する
+                    </label>
+                </div>
+                
+                <div class="total-score" id="ctrl-score-red">0</div>
+                
+                <div class="score-breakdown" id="red-breakdown">
+                    <!-- JSによる動的生成 -->
+                </div>
+                
+                <div class="key-hints" id="red-hints">
+                    <!-- JSによる動的生成 -->
+                </div>
+            </div>
+
+            <!-- 青チーム操作 -->
+            <div class="team-control-panel blue-panel panel">
+                <select id="team-blue-select" class="team-select"></select>
+                
+                <div class="team-mode-toggle" style="margin-top: 10px; background: rgba(0,0,0,0.3); padding: 8px 15px; border-radius: 6px;">
+                    <label style="font-size: 1.2rem; cursor: pointer; display: flex; align-items: center;">
+                        <input type="checkbox" id="chk-blue-auto" style="transform: scale(1.5); margin-right: 12px; cursor: pointer;">
+                        ✅ 自動機モードで加算する
+                    </label>
+                </div>
+                
+                <div class="total-score" id="ctrl-score-blue">0</div>
+                
+                <div class="score-breakdown" id="blue-breakdown">
+                    <!-- JSによる動的生成 -->
+                </div>
+                
+                <div class="key-hints" id="blue-hints">
+                    <!-- JSによる動的生成 -->
+                </div>
+            </div>
+        </section>
+        
+
+    </div>
+    <script src="js/control.js"></script>
+</body>
+</html>
