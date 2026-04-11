@@ -10,7 +10,19 @@ from aiohttp import web, WSMsgType
 # ─── 設定 ─────────────────────────────────────────────────────────
 HTTPS_PORT  = 8443   # Android ブラウザ接続先 (getUserMedia に HTTPS 必須)
 MJPEG_PORT  = 9001   # OBS 接続先 (HTTP - ローカルなので SSL 不要)
-LOCAL_IP    = "10.22.250.8"
+import socket
+
+def get_local_ip():
+    try:
+        s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        s.connect(("8.8.8.8", 80))
+        ip = s.getsockname()[0]
+        s.close()
+        return ip
+    except Exception:
+        return "127.0.0.1"
+
+LOCAL_IP    = get_local_ip()
 
 # 出力解像度 縦向き (portrait)
 OUTPUT_W    = 720
